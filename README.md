@@ -20,6 +20,7 @@ A beautiful and responsive event check-in and feedback web application using Fla
 - **Multi-event Support**: Manage multiple events simultaneously with separate participant lists
 
 ### 🙋 User Features  
+- **Smart Registration**: ID card scanning with OCR for automatic name extraction
 - **Quick Registration**: Simple 3-field form to register for any active event
 - **Instant QR Generation**: Get downloadable QR codes immediately after registration
 - **User Panel**: View all your registrations, QR codes, and feedback links in one place
@@ -41,20 +42,41 @@ A beautiful and responsive event check-in and feedback web application using Fla
 - Flask 2.3.3
 - qrcode 7.4.2
 - pillow 10.0.1
+- pytesseract 0.3.10 (for OCR functionality)
+- opencv-python 4.8.1.78 (for image processing)
+- numpy 1.24.3 (for numerical operations)
+- Tesseract OCR engine (system installation required)
 
 ## 🚀 Quick Setup
 
-1. **Install dependencies:**
+1. **Install Tesseract OCR Engine:**
+   ```powershell
+   # Windows - Download and install from: https://github.com/UB-Mannheim/tesseract/wiki
+   # Or using chocolatey:
+   choco install tesseract
+   
+   # Linux (Ubuntu/Debian):
+   sudo apt-get install tesseract-ocr
+   
+   # macOS:
+   brew install tesseract
+   ```
+
+2. **Install Python dependencies:**
    ```powershell
    pip install -r requirements.txt
    ```
 
-2. **Run the application:**
+3. **Configure Tesseract path (if needed):**
+   - Open `main.py` and uncomment the appropriate line for your system
+   - Update the path to match your Tesseract installation
+
+4. **Run the application:**
    ```powershell
    python main.py
    ```
 
-3. **Open in browser:**
+5. **Open in browser:**
    ```
    http://127.0.0.1:5000
    ```
@@ -137,8 +159,19 @@ A beautiful and responsive event check-in and feedback web application using Fla
 1. **Register for Event:**
    - Visit the homepage (`http://127.0.0.1:5000`)
    - Click "Register for Event" 
-   - Fill registration form:
-     - **Full Name**: Your complete name
+   - Choose registration method:
+     
+     **Option A - ID Card Scan:**
+     - Click "📷 Scan ID Card"
+     - Upload or drag-drop your ID card image
+     - System automatically extracts your name using OCR
+     - Verify the extracted name is correct
+     
+     **Option B - Manual Entry:**
+     - Click "✏️ Manual Entry"  
+     - Type your full name manually
+   
+   - Fill remaining fields:
      - **Email**: Valid email address
      - **Select Event**: Choose from available events
    - Click "Register Now"
@@ -180,6 +213,8 @@ A beautiful and responsive event check-in and feedback web application using Fla
 - **Multiple events**: Create separate events for different sessions/days
 
 #### **For Users:**
+- **ID Card Quality**: Use clear, well-lit images with readable text for best OCR results
+- **Backup Option**: Manual entry is always available if ID scanning fails
 - **Save QR codes**: Download and save to phone gallery for offline access
 - **Email backup**: Email yourself the QR code link as backup
 - **User panel**: Bookmark user panel for easy access to all registrations
@@ -188,6 +223,9 @@ A beautiful and responsive event check-in and feedback web application using Fla
 ### 🚨 Troubleshooting
 
 #### **Common Issues:**
+- **ID Card scanning not working**: Ensure good lighting, clear text, and supported image format
+- **OCR extraction failed**: Try different angle or lighting, use manual entry as backup
+- **Tesseract not found**: Verify Tesseract OCR is installed and path is configured correctly
 - **QR Scanner not working**: Ensure camera permissions are granted
 - **Can't find registration**: Use User Panel with exact email address used for registration
 - **Admin login issues**: Verify password is exactly `event@123` (case-sensitive)
@@ -255,8 +293,8 @@ event_python/
 | `/admin` | GET/POST | Admin | Admin panel and event creation |
 | `/admin/feedback/<event_id>` | GET | Admin | Feedback analytics dashboard |
 | `/verify/<reg_id>` | GET/POST | Admin | Check-in verification page |
-| `/scan` | GET | Admin | QR code scanner interface |
 | `/manual_checkin` | POST | Admin | Manual check-in processing |
+| `/scan_id` | POST | Public | Process ID card image and extract name using OCR |
 
 ## 🌟 Key Technologies
 
@@ -265,6 +303,8 @@ event_python/
 - **Frontend**: HTML5, Tailwind CSS, Vanilla JavaScript
 - **QR Generation**: python-qrcode + Pillow
 - **QR Scanning**: html5-qrcode library
+- **OCR Processing**: Tesseract OCR + pytesseract + OpenCV
+- **Image Processing**: OpenCV + NumPy for enhanced OCR accuracy
 - **Storage**: Browser localStorage for drafts and analytics
 
 ## 🔧 Configuration & Customization
