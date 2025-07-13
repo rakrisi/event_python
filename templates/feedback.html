@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Feedback</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-purple-50 to-pink-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-lg mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div class="text-6xl mb-4">📝</div>
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">Share Your Feedback</h1>
+                <p class="text-gray-600">Help us improve future events</p>
+            </div>
+
+            <!-- Feedback Form -->
+            <div class="bg-white rounded-xl shadow-lg p-8">
+                <form method="post" id="feedbackForm" class="space-y-6">
+                    <!-- Rating Section -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-4">
+                            ⭐ How would you rate this event?
+                        </label>
+                        <div class="flex justify-center space-x-2 mb-4">
+                            {% for i in range(1, 6) %}
+                            <label class="cursor-pointer">
+                                <input type="radio" name="rating" value="{{ i }}" class="sr-only" required>
+                                <div class="star text-4xl text-gray-300 hover:text-yellow-400 transition-colors duration-200" data-rating="{{ i }}">
+                                    ⭐
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        <div class="text-center">
+                            <span id="ratingText" class="text-sm text-gray-500">Click to rate</span>
+                        </div>
+                    </div>
+
+                    <!-- Comment Section -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            💭 Your Comments (Optional)
+                        </label>
+                        <textarea name="comment" rows="4" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 resize-none"
+                            placeholder="Share your thoughts about the event..."></textarea>
+                        <div class="text-right mt-1">
+                            <span id="charCount" class="text-xs text-gray-400">0 characters</span>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="submitBtn"
+                        class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-6 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                        🚀 Submit Feedback
+                    </button>
+                </form>
+
+                <!-- Save Draft -->
+                <div class="mt-4 text-center">
+                    <button onclick="saveDraft()" class="text-purple-600 hover:text-purple-800 text-sm">
+                        💾 Save as Draft
+                    </button>
+                    <span class="text-gray-400 mx-2">|</span>
+                    <button onclick="loadDraft()" class="text-purple-600 hover:text-purple-800 text-sm">
+                        📂 Load Draft
+                    </button>
+                </div>
+            </div>
+
+            <!-- Back Link -->
+            <div class="text-center mt-6">
+                <a href="/" class="text-purple-600 hover:text-purple-800 transition-colors duration-300">
+                    🏠 Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ratingTexts = {
+            1: "😞 Poor",
+            2: "😐 Fair", 
+            3: "🙂 Good",
+            4: "😊 Very Good",
+            5: "🤩 Excellent"
+        };
+
+        // Rating functionality
+        document.querySelectorAll('.star').forEach(star => {
+            star.addEventListener('click', function() {
+                const rating = this.dataset.rating;
+                selectRating(rating);
+            });
+
+            star.addEventListener('mouseenter', function() {
+                const rating = this.dataset.rating;
+                highlightStars(rating);
+            });
+        });
+
+        document.querySelector('.space-y-6').addEventListener('mouseleave', function() {
+            const selectedRating = document.querySelector('input[name="rating"]:checked');
+            if (selectedRating) {
+                highlightStars(selectedRating.value);
+            } else {
+                resetStars();
+            }
+        });
+
+        function selectRating(rating) {
+            document.querySelector(`input[name="rating"][value="${rating}"]`).checked = true;
+            highlightStars(rating);
+            document.getElementById('ratingText').textContent = ratingTexts[rating];
+            enableSubmitButton();
+        }
+
+        function highlightStars(rating) {
+            document.querySelectorAll('.star').forEach((star, index) => {
+                if (index < rating) {
+                    star.className = 'star text-4xl text-yellow-400 transition-colors duration-200';
+                } else {
+                    star.className = 'star text-4xl text-gray-300 transition-colors duration-200';
+                }
+            });
+        }
+
+        function resetStars() {
+            document.querySelectorAll('.star').forEach(star => {
+                star.className = 'star text-4xl text-gray-300 hover:text-yellow-400 transition-colors duration-200';
+            });
+        }
+
+        function enableSubmitButton() {
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        // Character counter
+        document.querySelector('textarea[name="comment"]').addEventListener('input', function() {
+            const charCount = this.value.length;
+            document.getElementById('charCount').textContent = `${charCount} characters`;
+        });
+
+        // LocalStorage functionality
+        function saveDraft() {
+            const rating = document.querySelector('input[name="rating"]:checked');
+            const comment = document.querySelector('textarea[name="comment"]').value;
+            
+            if (!rating && !comment) {
+                alert('Nothing to save!');
+                return;
+            }
+
+            const draftData = {
+                rating: rating ? rating.value : null,
+                comment: comment,
+                timestamp: new Date().toISOString(),
+                regId: "{{ reg['id'] }}"
+            };
+
+            localStorage.setItem('feedback_draft_{{ reg["id"] }}', JSON.stringify(draftData));
+            
+            // Show confirmation
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '✅ Saved!';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+            }, 2000);
+        }
+
+        function loadDraft() {
+            const draft = localStorage.getItem('feedback_draft_{{ reg["id"] }}');
+            if (!draft) {
+                alert('No draft found!');
+                return;
+            }
+
+            const draftData = JSON.parse(draft);
+            
+            if (draftData.rating) {
+                selectRating(draftData.rating);
+            }
+            
+            if (draftData.comment) {
+                document.querySelector('textarea[name="comment"]').value = draftData.comment;
+                document.getElementById('charCount').textContent = `${draftData.comment.length} characters`;
+            }
+        }
+
+        // Auto-save on form changes
+        document.getElementById('feedbackForm').addEventListener('change', function() {
+            setTimeout(saveDraft, 1000); // Auto-save after 1 second
+        });
+
+        // Load draft on page load
+        window.onload = function() {
+            // Check for quick rating first
+            const quickRating = localStorage.getItem('quick_rating');
+            if (quickRating) {
+                selectRating(quickRating);
+                localStorage.removeItem('quick_rating'); // Clean up
+                // Show notification
+                const notification = document.createElement('div');
+                notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                notification.innerHTML = '⚡ Quick rating applied!';
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 3000);
+            } else {
+                loadDraft();
+            }
+        };
+
+        // Clear draft on successful submission
+        document.getElementById('feedbackForm').addEventListener('submit', function() {
+            localStorage.removeItem('feedback_draft_{{ reg["id"] }}');
+        });
+    </script>
+</body>
+</html>

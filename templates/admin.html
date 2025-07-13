@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-bold text-gray-800 mb-2">👨‍💼 Admin Panel</h1>
+            <p class="text-xl text-gray-600">Manage events and participants</p>
+        </div>
+
+        <!-- QR Scanner Section -->
+        <div class="max-w-4xl mx-auto mb-8">
+            <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg p-8 text-white">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div class="mb-6 md:mb-0">
+                        <h2 class="text-3xl font-bold mb-2">🔍 QR Code Scanner</h2>
+                        <p class="text-blue-100">Check in participants by scanning their QR codes</p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <a href="/scan" class="bg-white text-blue-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors duration-300 font-medium text-center">
+                            📱 Start QR Scanner
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Manual Check-in -->
+                <div class="mt-6 pt-6 border-t border-blue-400">
+                    <p class="text-blue-100 mb-3">Manual check-in by registration ID:</p>
+                    <form action="/manual_checkin" method="post" class="flex gap-3">
+                        <input type="number" name="reg_id" placeholder="Registration ID" required
+                            class="flex-1 px-4 py-2 rounded-lg text-gray-800 border-0 focus:ring-2 focus:ring-white">
+                        <button type="submit" class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors duration-300">
+                            Check In
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Event Section -->
+        <div class="max-w-4xl mx-auto mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">🎉 Create New Event</h2>
+                <form method="post" class="grid md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Event Title</label>
+                        <input type="text" name="title" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Event Date</label>
+                        <input type="date" name="date" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                        <textarea name="description" rows="3"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 resize-none"></textarea>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-300 font-medium">
+                            ➕ Create Event
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Events List -->
+        <div class="max-w-4xl mx-auto mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">📅 Events</h2>
+                
+                {% if events %}
+                    <div class="grid gap-4">
+                        {% for event in events %}
+                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-300">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                <div class="mb-3 sm:mb-0">
+                                    <h3 class="text-lg font-semibold text-gray-800">{{ event['title'] }}</h3>
+                                    <p class="text-gray-600 text-sm">📅 {{ event['date'] }}</p>
+                                    {% if event['description'] %}
+                                    <p class="text-gray-500 text-sm mt-1">{{ event['description'] }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="flex flex-col sm:flex-row gap-2">
+                                    <a href="{{ url_for('admin', event_id=event['id']) }}" 
+                                        class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors duration-300 text-center text-sm">
+                                        👥 View Participants
+                                    </a>
+                                    <a href="{{ url_for('view_feedback', event_id=event['id']) }}" 
+                                        class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors duration-300 text-center text-sm">
+                                        📊 View Feedback
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <div class="text-4xl mb-4">📭</div>
+                        <p class="text-gray-500">No events created yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Participants Section -->
+        {% if selected_event %}
+        <div class="max-w-6xl mx-auto mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">👥 Participants for "{{ selected_event['title'] }}"</h2>
+                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                        {{ participants|length }} Registered
+                    </span>
+                </div>
+                
+                {% if participants %}
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-200">
+                                    <th class="text-left py-3 px-4 font-medium text-gray-700">ID</th>
+                                    <th class="text-left py-3 px-4 font-medium text-gray-700">Name</th>
+                                    <th class="text-left py-3 px-4 font-medium text-gray-700">Email</th>
+                                    <th class="text-left py-3 px-4 font-medium text-gray-700">Check-in</th>
+                                    <th class="text-left py-3 px-4 font-medium text-gray-700">Feedback</th>
+                                    <th class="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in participants %}
+                                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                    <td class="py-3 px-4 text-sm font-mono">{{ p['id'] }}</td>
+                                    <td class="py-3 px-4 font-medium">{{ p['name'] }}</td>
+                                    <td class="py-3 px-4 text-gray-600">{{ p['email'] }}</td>
+                                    <td class="py-3 px-4">
+                                        {% if p['checked_in'] %}
+                                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">✅ Checked In</span>
+                                        {% else %}
+                                            <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">❌ Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        {% if p['feedback_given'] %}
+                                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">📝 Completed</span>
+                                        {% else %}
+                                            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium">⏳ Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        <a href="{{ url_for('verify', reg_id=p['id']) }}" 
+                                            class="text-blue-600 hover:text-blue-800 text-sm font-medium mr-2">
+                                            🔍 Verify
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Event Actions -->
+                    <div class="mt-6 text-center">
+                        <a href="{{ url_for('view_feedback', event_id=selected_event['id']) }}" 
+                            class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-300 font-medium">
+                            📊 View All Feedback for This Event
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <div class="text-4xl mb-4">👤</div>
+                        <p class="text-gray-500">No participants registered yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Navigation -->
+        <div class="text-center">
+            <a href="/" class="text-blue-600 hover:text-blue-800 transition-colors duration-300 font-medium">
+                🏠 Back to Home
+            </a>
+        </div>
+    </div>
+</body>
+</html>

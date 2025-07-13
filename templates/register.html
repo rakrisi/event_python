@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register for Event</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-blue-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-md mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">🎫 Event Registration</h1>
+                <p class="text-gray-600">Sign up and get your QR code</p>
+            </div>
+
+            <!-- Registration Form -->
+            <div class="bg-white rounded-xl shadow-lg p-8">
+                <form method="post" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            👤 Full Name
+                        </label>
+                        <input type="text" name="name" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                            placeholder="Enter your full name">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            📧 Email Address
+                        </label>
+                        <input type="email" name="email" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                            placeholder="Enter your email">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            🎉 Select Event
+                        </label>
+                        <select name="event_id" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+                            <option value="">Choose an event...</option>
+                            {% for event in events %}
+                            <option value="{{ event['id'] }}">{{ event['title'] }} ({{ event['date'] }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit"
+                        class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors duration-300 font-medium text-lg">
+                        🎫 Register Now
+                    </button>
+                </form>
+            </div>
+
+            <!-- Back Link -->
+            <div class="text-center mt-6 space-y-3">
+                <a href="/" class="block text-blue-600 hover:text-blue-800 transition-colors duration-300">
+                    ← Back to Home
+                </a>
+                <a href="{{ url_for('user_panel') }}" class="block text-purple-600 hover:text-purple-800 transition-colors duration-300">
+                    👤 View My Registrations
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

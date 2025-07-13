@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Feedback - {{ event['title'] }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="text-6xl mb-4">📊</div>
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">Event Feedback</h1>
+            <h2 class="text-2xl text-gray-600 mb-2">{{ event['title'] }}</h2>
+            <p class="text-gray-500">📅 {{ event['date'] }}</p>
+        </div>
+
+        <!-- Statistics Overview -->
+        <div class="max-w-6xl mx-auto mb-8">
+            <div class="grid md:grid-cols-4 gap-6">
+                <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                    <div class="text-3xl font-bold text-blue-600">{{ stats['total_registrations'] }}</div>
+                    <div class="text-sm text-gray-600">Total Registrations</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                    <div class="text-3xl font-bold text-green-600">{{ stats['checked_in_count'] }}</div>
+                    <div class="text-sm text-gray-600">Checked In</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                    <div class="text-3xl font-bold text-purple-600">{{ stats['feedback_count'] }}</div>
+                    <div class="text-sm text-gray-600">Feedback Received</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                    {% if stats['checked_in_count'] > 0 %}
+                        {% set feedback_rate = (stats['feedback_count'] * 100 / stats['checked_in_count'])|round|int %}
+                    {% else %}
+                        {% set feedback_rate = 0 %}
+                    {% endif %}
+                    <div class="text-3xl font-bold text-orange-600">{{ feedback_rate }}%</div>
+                    <div class="text-sm text-gray-600">Feedback Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rating Distribution Chart -->
+        {% if rating_stats %}
+        <div class="max-w-4xl mx-auto mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-8">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center">⭐ Rating Distribution</h3>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <canvas id="ratingChart" width="300" height="300"></canvas>
+                    </div>
+                    <div class="space-y-4">
+                        {% for rating in rating_stats %}
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                <span class="text-2xl mr-3">
+                                    {% if rating['rating'] == 1 %}😞
+                                    {% elif rating['rating'] == 2 %}😐
+                                    {% elif rating['rating'] == 3 %}🙂
+                                    {% elif rating['rating'] == 4 %}😊
+                                    {% else %}🤩
+                                    {% endif %}
+                                </span>
+                                <span class="font-medium">{{ rating['rating'] }} Star{{ 's' if rating['rating'] != 1 else '' }}</span>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-lg">{{ rating['count'] }}</div>
+                                <div class="text-xs text-gray-500">
+                                    {{ (rating['count'] * 100 / stats['feedback_count'])|round|int }}%
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- Average Rating -->
+                        {% set total_rating = 0 %}
+                        {% set total_count = 0 %}
+                        {% for rating in rating_stats %}
+                            {% set total_rating = total_rating + (rating['rating'] * rating['count']) %}
+                            {% set total_count = total_count + rating['count'] %}
+                        {% endfor %}
+                        {% if total_count > 0 %}
+                            {% set avg_rating = (total_rating / total_count)|round(1) %}
+                            <div class="bg-blue-100 p-4 rounded-lg text-center">
+                                <div class="text-2xl font-bold text-blue-600">{{ avg_rating }}/5</div>
+                                <div class="text-sm text-blue-800">Average Rating</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Feedback Comments -->
+        <div class="max-w-6xl mx-auto mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-8">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">💬 Participant Comments</h3>
+                
+                {% if feedback_data %}
+                    <div class="space-y-6">
+                        {% for feedback in feedback_data %}
+                        <div class="border-l-4 border-blue-500 pl-6 py-4 bg-gray-50 rounded-r-lg">
+                            <div class="flex items-start justify-between mb-3">
+                                <div>
+                                    <div class="font-bold text-gray-800">{{ feedback['name'] }}</div>
+                                    <div class="text-sm text-gray-500">{{ feedback['email'] }}</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="flex items-center">
+                                        {% for i in range(1, 6) %}
+                                            {% if i <= feedback['rating'] %}
+                                                <span class="text-yellow-400">⭐</span>
+                                            {% else %}
+                                                <span class="text-gray-300">⭐</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <div class="text-xs text-gray-500">ID: {{ feedback['reg_id'] }}</div>
+                                </div>
+                            </div>
+                            {% if feedback['comment'] %}
+                                <div class="bg-white p-4 rounded-lg">
+                                    <p class="text-gray-700 italic">"{{ feedback['comment'] }}"</p>
+                                </div>
+                            {% else %}
+                                <div class="text-gray-400 italic">No comment provided</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <div class="text-6xl mb-4">📝</div>
+                        <h3 class="text-2xl font-bold text-gray-600 mb-2">No Feedback Yet</h3>
+                        <p class="text-gray-500">Feedback will appear here as participants submit them</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Export Options -->
+        {% if feedback_data %}
+        <div class="max-w-4xl mx-auto mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">📤 Export Feedback</h3>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <button onclick="exportCSV()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors duration-300">
+                        📊 Export as CSV
+                    </button>
+                    <button onclick="printReport()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-300">
+                        🖨️ Print Report
+                    </button>
+                    <button onclick="copyStats()" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors duration-300">
+                        📋 Copy Summary
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Navigation -->
+        <div class="text-center space-y-3">
+            <a href="/admin" class="inline-block bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700 transition-colors duration-300 font-medium">
+                ← Back to Admin Panel
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Rating distribution chart
+        {% if rating_stats %}
+        const ctx = document.getElementById('ratingChart').getContext('2d');
+        const ratingLabels = [];
+        const ratingData = [];
+        
+        {% for rating in rating_stats %}
+        ratingLabels.push('{{ rating["rating"] }} Star{{ "s" if rating["rating"] != 1 else "" }}');
+        ratingData.push({{ rating['count'] }});
+        {% endfor %}
+        
+        const chart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ratingLabels,
+                datasets: [{
+                    data: ratingData,
+                    backgroundColor: ['#EF4444', '#F97316', '#EAB308', '#22C55E', '#3B82F6']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+        {% endif %}
+
+        // Export functions
+        function exportCSV() {
+            const feedbackData = [];
+            {% for feedback in feedback_data %}
+            feedbackData.push({
+                name: "{{ feedback['name'] }}",
+                email: "{{ feedback['email'] }}",
+                rating: {{ feedback['rating'] }},
+                comment: "{{ feedback['comment']|replace('"', '""')|replace('\n', ' ') }}"
+            });
+            {% endfor %}
+
+            let csv = 'Name,Email,Rating,Comment\n';
+            feedbackData.forEach(row => {
+                csv += `"${row.name}","${row.email}",${row.rating},"${row.comment}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'event_feedback_{{ event["title"]|replace(" ", "_") }}.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function printReport() {
+            window.print();
+        }
+
+        function copyStats() {
+            const stats = `Event: {{ event['title'] }}
+Date: {{ event['date'] }}
+Total Registrations: {{ stats['total_registrations'] }}
+Checked In: {{ stats['checked_in_count'] }}
+Feedback Received: {{ stats['feedback_count'] }}
+Feedback Rate: {{ feedback_rate }}%`;
+
+            navigator.clipboard.writeText(stats).then(() => {
+                alert('Statistics copied to clipboard!');
+            }).catch(() => {
+                alert('Failed to copy to clipboard');
+            });
+        }
+    </script>
+</body>
+</html>

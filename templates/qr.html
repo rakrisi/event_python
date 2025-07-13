@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your QR Code</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-emerald-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-md mx-auto">
+            <!-- Success Header -->
+            <div class="text-center mb-8">
+                <div class="text-6xl mb-4">✅</div>
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">Registration Successful!</h1>
+                <p class="text-gray-600">Your QR code is ready</p>
+            </div>
+
+            <!-- QR Code Card -->
+            <div class="bg-white rounded-xl shadow-lg p-8 text-center mb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">📱 Your Check-in QR Code</h2>
+                <p class="text-gray-600 mb-6">Show this QR code at the event for check-in</p>
+                
+                <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                    <img src="{{ url_for('qr_image', reg_id=reg_id) }}" alt="QR Code" 
+                        class="mx-auto max-w-full h-auto">
+                </div>
+
+                <div class="space-y-3">
+                    <a href="{{ url_for('qr_image', reg_id=reg_id) }}" download="qr_{{ reg_id }}.png"
+                        class="block bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors duration-300">
+                        📥 Download QR Code
+                    </a>
+                    
+                    <button onclick="shareQR()" 
+                        class="block w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors duration-300">
+                        📤 Share QR Code
+                    </button>
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="bg-blue-50 rounded-xl p-6 mb-6">
+                <h3 class="font-bold text-blue-800 mb-2">📋 Important Instructions:</h3>
+                <ul class="text-blue-700 space-y-2 text-sm">
+                    <li>• Save or screenshot this QR code</li>
+                    <li>• Show it to the admin at the event</li>
+                    <li>• After check-in, you'll receive a feedback form</li>
+                    <li>• Keep your registration ID: <strong>{{ reg_id }}</strong></li>
+                </ul>
+            </div>
+
+            <!-- Navigation -->
+            <div class="text-center space-y-3">
+                <a href="/" class="block text-blue-600 hover:text-blue-800 transition-colors duration-300">
+                    🏠 Back to Home
+                </a>
+                <a href="{{ url_for('user_panel') }}" class="block text-purple-600 hover:text-purple-800 transition-colors duration-300">
+                    👤 View All My Registrations
+                </a>
+                <a href="{{ url_for('register') }}" class="block text-green-600 hover:text-green-800 transition-colors duration-300">
+                    ➕ Register for Another Event
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Store registration data in localStorage
+        const registrationData = {
+            regId: "{{ reg_id }}",
+            timestamp: new Date().toISOString(),
+            qrUrl: "{{ url_for('qr_image', reg_id=reg_id) }}"
+        };
+        localStorage.setItem('registration_{{ reg_id }}', JSON.stringify(registrationData));
+
+        function shareQR() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'My Event QR Code',
+                    text: 'Here is my event check-in QR code',
+                    url: window.location.href
+                }).catch(console.error);
+            } else {
+                // Fallback: copy to clipboard
+                const url = window.location.href;
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('QR code link copied to clipboard!');
+                }).catch(() => {
+                    alert('Unable to share. Please save the QR code manually.');
+                });
+            }
+        }
+    </script>
+</body>
+</html>

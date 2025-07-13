@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thank You!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-blue-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-md mx-auto text-center">
+            <!-- Success Animation -->
+            <div class="mb-8">
+                <div class="text-8xl mb-4 animate-bounce">🎉</div>
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">Thank You!</h1>
+                <p class="text-xl text-gray-600">Your feedback has been submitted</p>
+            </div>
+
+            <!-- Thank You Card -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                <div class="bg-gradient-to-r from-green-400 to-blue-500 rounded-lg p-6 text-white mb-6">
+                    <h2 class="text-2xl font-bold mb-2">Feedback Received! ✅</h2>
+                    <p>Your input helps us make better events</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="font-bold text-gray-800 mb-2">What happens next?</h3>
+                        <ul class="text-gray-600 text-sm space-y-1 text-left">
+                            <li>• Your feedback will be reviewed by our team</li>
+                            <li>• We'll use your input to improve future events</li>
+                            <li>• Thank you for taking the time to help us!</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="space-y-3">
+                <a href="/" class="block bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors duration-300 font-medium">
+                    🏠 Back to Home
+                </a>
+                <a href="{{ url_for('register') }}" class="block text-green-600 hover:text-green-800 transition-colors duration-300">
+                    🎫 Register for Another Event
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Clear feedback draft from localStorage
+        window.onload = function() {
+            // Clear any saved drafts since feedback was submitted
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('feedback_draft_')) {
+                    localStorage.removeItem(key);
+                }
+            });
+        };
+
+        // Add confetti effect
+        function createConfetti() {
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.style.position = 'fixed';
+                confetti.style.width = '10px';
+                confetti.style.height = '10px';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.top = '-10px';
+                confetti.style.zIndex = '1000';
+                confetti.style.borderRadius = '50%';
+                document.body.appendChild(confetti);
+
+                confetti.animate([
+                    { transform: 'translateY(-10px) rotate(0deg)', opacity: 1 },
+                    { transform: 'translateY(100vh) rotate(360deg)', opacity: 0 }
+                ], {
+                    duration: Math.random() * 2000 + 1000,
+                    easing: 'ease-out'
+                }).onfinish = () => confetti.remove();
+            }
+        }
+
+        // Trigger confetti on page load
+        setTimeout(createConfetti, 500);
+    </script>
+</body>
+</html>

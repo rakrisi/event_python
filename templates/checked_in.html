@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Successfully Checked In</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-emerald-50 to-green-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-md mx-auto">
+            <!-- Success Header -->
+            <div class="text-center mb-8">
+                <div class="text-8xl mb-4">🎉</div>
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">Check-in Successful!</h1>
+                <p class="text-gray-600">Welcome to the event</p>
+            </div>
+
+            <!-- Success Card -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                <div class="text-center mb-6">
+                    <div class="bg-green-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-10 h-10 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">You're all set!</h2>
+                </div>
+
+                <!-- Feedback Call-to-Action -->
+                <!-- <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 text-white text-center mb-4">
+                    <h3 class="text-xl font-bold mb-2">📝 Share Your Experience</h3>
+                    <p class="mb-4">Help us improve by sharing your feedback!</p>
+                    <a href="{{ feedback_link }}" 
+                        class="inline-block bg-white text-blue-600 font-bold py-3 px-8 rounded-lg hover:bg-gray-100 transition-colors duration-300 transform hover:scale-105 shadow-lg">
+                        Give Feedback Now ⭐
+                    </a>
+                </div> -->
+
+                <!-- Alternative Actions -->
+                <!-- <div class="grid grid-cols-2 gap-3 mb-4">
+                    <button onclick="saveFeedbackLink()" 
+                        class="bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors duration-300 text-sm font-medium">
+                        📱 Save for Later
+                    </button>
+                    <button onclick="shareFeedbackLink()" 
+                        class="bg-green-100 text-green-700 py-3 px-4 rounded-lg hover:bg-green-200 transition-colors duration-300 text-sm font-medium">
+                        📤 Share Link
+                    </button>
+                </div> -->
+
+                <!-- Quick Feedback Option -->
+                <!-- <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                    <p class="text-sm text-yellow-800 mb-3">⚡ Quick feedback (30 seconds)</p>
+                    <div class="flex justify-center space-x-2">
+                        <button onclick="quickFeedback(1)" class="text-2xl hover:scale-110 transition-transform duration-200">😞</button>
+                        <button onclick="quickFeedback(2)" class="text-2xl hover:scale-110 transition-transform duration-200">😐</button>
+                        <button onclick="quickFeedback(3)" class="text-2xl hover:scale-110 transition-transform duration-200">🙂</button>
+                        <button onclick="quickFeedback(4)" class="text-2xl hover:scale-110 transition-transform duration-200">😊</button>
+                        <button onclick="quickFeedback(5)" class="text-2xl hover:scale-110 transition-transform duration-200">🤩</button>
+                    </div>
+                    <p class="text-xs text-yellow-600 mt-2">Click for quick rating, or use the full form above</p>
+                </div> -->
+            </div>
+
+            <!-- Admin Navigation -->
+            <div class="text-center space-y-3">
+                <a href="/admin" class="block text-blue-600 hover:text-blue-800 transition-colors duration-300">
+                    👨‍💼 Back to Admin Panel
+                </a>
+                <a href="/scan" class="block text-green-600 hover:text-green-800 transition-colors duration-300">
+                    🔍 Scan Another QR Code
+                </a>
+                <p class="text-sm text-gray-500">✅ Check-in completed successfully!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function saveFeedbackLink() {
+            const feedbackData = {
+                link: "{{ feedback_link }}",
+                timestamp: new Date().toISOString(),
+                saved: true
+            };
+            
+            localStorage.setItem('feedback_link', JSON.stringify(feedbackData));
+            
+            // Show confirmation
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '✅ Saved!';
+            button.className = 'bg-green-100 text-green-700 py-3 px-4 rounded-lg font-medium';
+            
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.className = 'bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors duration-300 text-sm font-medium';
+            }, 2000);
+        }
+
+        function shareFeedbackLink() {
+            const feedbackLink = "{{ feedback_link }}";
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Event Feedback',
+                    text: 'Please share your feedback about the event',
+                    url: feedbackLink
+                }).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(feedbackLink).then(() => {
+                    const button = event.target;
+                    const originalText = button.innerHTML;
+                    button.innerHTML = '✅ Copied!';
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                    }, 2000);
+                }).catch(() => {
+                    alert('Unable to copy link. Please save it manually.');
+                });
+            }
+        }
+
+        function quickFeedback(rating) {
+            // Store quick feedback and redirect
+            localStorage.setItem('quick_rating', rating);
+            window.location.href = "{{ feedback_link }}";
+        }
+
+        // Auto-save feedback link
+        window.onload = function() {
+            const feedbackData = {
+                link: "{{ feedback_link }}",
+                timestamp: new Date().toISOString(),
+                autoSaved: true
+            };
+            localStorage.setItem('current_feedback_link', JSON.stringify(feedbackData));
+        };
+
+        // Add some celebratory animation
+        setTimeout(() => {
+            const elements = document.querySelectorAll('.transform');
+            elements.forEach(el => {
+                el.style.transform = 'scale(1.05)';
+                setTimeout(() => {
+                    el.style.transform = 'scale(1)';
+                }, 300);
+            });
+        }, 500);
+    </script>
+</body>
+</html>

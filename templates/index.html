@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Check-In App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#1E40AF'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-bold text-gray-800 mb-4">🎉 Event Check-In</h1>
+            <p class="text-xl text-gray-600">Seamless event registration and feedback system</p>
+        </div>
+
+        <!-- Navigation Cards -->
+        <div class="grid md:grid-cols-3 gap-6 mb-12 max-w-6xl mx-auto">
+            <a href="{{ url_for('register') }}" class="group">
+                <div class="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="text-center">
+                        <div class="text-6xl mb-4">🎫</div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">Register for Event</h3>
+                        <p class="text-gray-600">Sign up and get your QR code</p>
+                    </div>
+                </div>
+            </a>
+            
+            <a href="{{ url_for('user_panel') }}" class="group">
+                <div class="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="text-center">
+                        <div class="text-6xl mb-4">👤</div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">My Registrations</h3>
+                        <p class="text-gray-600">View QR codes and feedback</p>
+                    </div>
+                </div>
+            </a>
+            
+            <a href="{{ url_for('admin') }}" class="group">
+                <div class="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="text-center">
+                        <div class="text-6xl mb-4">👨‍💼</div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">Admin Panel</h3>
+                        <p class="text-gray-600">Manage events and check-ins</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Events Section -->
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center">📅 Upcoming Events</h2>
+            
+            {% if events %}
+                <div class="grid gap-6">
+                    {% for event in events %}
+                    <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                            <div class="mb-4 md:mb-0">
+                                <h3 class="text-2xl font-bold text-gray-800 mb-2">{{ event['title'] }}</h3>
+                                <p class="text-gray-600 mb-2">{{ event['description'] or 'No description available' }}</p>
+                                <div class="flex items-center text-gray-500">
+                                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    {{ event['date'] }}
+                                </div>
+                            </div>
+                            <a href="{{ url_for('register') }}" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-secondary transition-colors duration-300 text-center">
+                                Register Now
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <div class="text-6xl mb-4">📭</div>
+                    <h3 class="text-2xl font-bold text-gray-600 mb-2">No Events Yet</h3>
+                    <p class="text-gray-500">Check back later for upcoming events!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
