@@ -1,24 +1,15 @@
 import os
 import sqlite3
 import io
-import re
-import base64
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash, session
 from datetime import datetime
 import qrcode
 from PIL import Image
-import pytesseract
-import cv2
-import numpy as np
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_change_in_production'
 DATABASE = 'event.db'
 ADMIN_PASSWORD = 'event@123'
-
-# Configure Tesseract path (adjust based on your installation)
-# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Windows
-# pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'  # Linux/Mac
 
 # --- Database Initialization ---
 def init_db():
@@ -65,94 +56,6 @@ def generate_qr(data):
     buf.seek(0)
     return buf
 
-def preprocess_image(image):
-    """Preprocess image for better OCR results"""
-    try:
-        # Convert PIL image to OpenCV format
-        open_cv_image = np.array(image)
-        
-        # Convert RGB to BGR (OpenCV uses BGR)
-        if len(open_cv_image.shape) == 3:
-            open_cv_image = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2BGR)
-        
-        # Convert to grayscale
-        gray = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2GRAY)
-        
-        # Apply Gaussian blur to reduce noise
-        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-        
-        # Apply threshold to get binary image
-        _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        
-        # Apply morphological operations to clean up the image
-        kernel = np.ones((2, 2), np.uint8)
-        cleaned = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-        
-        # Convert back to PIL Image
-        processed_image = Image.fromarray(cleaned)
-        return processed_image
-    except Exception as e:
-        print(f"Error preprocessing image: {e}")
-        return image
-
-def extract_name_from_id(image):
-    """Extract name from ID card using OCR"""
-    try:
-        # Preprocess the image
-        processed_image = preprocess_image(image)
-        
-        # Extract text using Tesseract
-        text = pytesseract.image_to_string(processed_image, lang='eng', config='--psm 6')
-        
-        # Common patterns for names on ID cards
-        name_patterns = [
-            r'Name[:\s]*([A-Za-z\s]+)',
-            r'NAME[:\s]*([A-Za-z\s]+)',
-            r'Full Name[:\s]*([A-Za-z\s]+)',
-            r'FULL NAME[:\s]*([A-Za-z\s]+)',
-            r'Given Name[:\s]*([A-Za-z\s]+)',
-            r'GIVEN NAME[:\s]*([A-Za-z\s]+)',
-            r'First Name[:\s]*([A-Za-z\s]+)',
-            r'FIRST NAME[:\s]*([A-Za-z\s]+)',
-            r'Surname[:\s]*([A-Za-z\s]+)',
-            r'SURNAME[:\s]*([A-Za-z\s]+)',
-        ]
-        
-        # Try to find name using patterns
-        extracted_name = ""
-        for pattern in name_patterns:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                extracted_name = match.group(1).strip()
-                break
-        
-        # If no pattern matches, try to extract likely name candidates
-        if not extracted_name:
-            lines = text.split('\n')
-            for line in lines:
-                line = line.strip()
-                # Look for lines that could be names (alphabetic characters and spaces)
-                if re.match(r'^[A-Za-z\s]{3,50}$', line) and len(line.split()) >= 2:
-                    extracted_name = line
-                    break
-        
-        # Clean up the extracted name
-        if extracted_name:
-            # Remove extra spaces and capitalize properly
-            extracted_name = ' '.join(word.capitalize() for word in extracted_name.split())
-            # Remove common non-name words
-            non_name_words = ['ID', 'CARD', 'IDENTITY', 'LICENCE', 'LICENSE', 'PASSPORT', 'DRIVER']
-            words = extracted_name.split()
-            filtered_words = [word for word in words if word.upper() not in non_name_words]
-            if filtered_words:
-                extracted_name = ' '.join(filtered_words)
-        
-        return extracted_name if extracted_name else None
-        
-    except Exception as e:
-        print(f"Error extracting name from ID: {e}")
-        return None
-
 # --- Authentication Functions ---
 def require_admin_auth():
     """Check if user is authenticated as admin"""
@@ -194,49 +97,6 @@ def register():
         return render_template('qr.html', qr_url=qr_url, reg_id=reg_id)
     conn.close()
     return render_template('register.html', events=events)
-
-@app.route('/scan_id', methods=['POST'])
-def scan_id():
-    """Handle ID card scanning and name extraction"""
-    try:
-        # Check if image was uploaded
-        if 'id_image' not in request.files:
-            return jsonify({'success': False, 'error': 'No image uploaded'})
-        
-        file = request.files['id_image']
-        if file.filename == '':
-            return jsonify({'success': False, 'error': 'No file selected'})
-        
-        # Check file type
-        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff'}
-        if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
-            return jsonify({'success': False, 'error': 'Invalid file type. Please upload an image.'})
-        
-        # Read and process the image
-        image = Image.open(file.stream)
-        
-        # Extract name from ID card
-        extracted_name = extract_name_from_id(image)
-        
-        if extracted_name:
-            return jsonify({
-                'success': True, 
-                'name': extracted_name,
-                'message': 'Name extracted successfully from ID card!'
-            })
-        else:
-            return jsonify({
-                'success': False, 
-                'error': 'Could not extract name from ID card. Please enter manually or try a clearer image.',
-                'suggestion': 'Make sure the ID card is well-lit, clearly visible, and the name field is not obscured.'
-            })
-            
-    except Exception as e:
-        return jsonify({
-            'success': False, 
-            'error': f'Error processing ID card: {str(e)}',
-            'suggestion': 'Please try again with a clearer image or enter the name manually.'
-        })
 
 @app.route('/qr/<int:reg_id>')
 def qr_image(reg_id):
