@@ -1,6 +1,9 @@
 # 🎉 Flask Event Check-In App
 
-A beautiful and responsive event check-in and feedback web application using Flask, SQLite, Tailwind CSS, and QR codes.
+A beautiful and responsive event check-in and feedback web application built with Flask, Firebase Firestore, Tailwind CSS, and QR codes.
+
+## 🔒 Security Notice
+**IMPORTANT**: This project uses Firebase service account credentials. The `firebase-service-account-key.json` file contains sensitive information and should **NEVER** be committed to version control. It is automatically excluded via `.gitignore`. Always keep your Firebase credentials secure!
 
 ## ✨ Features
 
@@ -9,6 +12,7 @@ A beautiful and responsive event check-in and feedback web application using Fla
 - **Session Management**: Persistent login sessions with secure logout
 - **Protected Routes**: All admin functions require authentication
 - **Access Control**: Clear separation between user and admin functionalities
+- **Firebase Security**: Secure cloud database with proper authentication
 
 ### 🧑‍💼 Admin Features
 - **Event Management**: Create and manage multiple events with dates and descriptions
@@ -18,6 +22,7 @@ A beautiful and responsive event check-in and feedback web application using Fla
 - **Feedback Analytics**: Comprehensive feedback dashboard with ratings distribution charts
 - **Export Capabilities**: Export feedback data to CSV, print reports, or copy to clipboard
 - **Multi-event Support**: Manage multiple events simultaneously with separate participant lists
+- **Cloud Sync**: Real-time data synchronization across devices with Firebase
 
 ### 🙋 User Features  
 - **Quick Registration**: Simple 3-field form to register for any active event
@@ -25,8 +30,8 @@ A beautiful and responsive event check-in and feedback web application using Fla
 - **User Panel**: View all your registrations, QR codes, and feedback links in one place
 - **Mobile-Optimized**: Perfect experience on smartphones and tablets
 - **Feedback System**: Interactive 5-star rating with optional detailed comments
-- **Offline Capability**: Save registration data and feedback drafts locally
-- **Social Sharing**: Share QR codes and feedback links easily
+- **Cloud Storage**: All data stored securely in Firebase Firestore
+- **Real-time Updates**: Instant updates across all devices and sessions
 
 ### 🎨 UI/UX Features
 - **Modern Design**: Beautiful Tailwind CSS with gradient backgrounds and smooth animations
@@ -41,13 +46,55 @@ A beautiful and responsive event check-in and feedback web application using Fla
 - Flask 2.3.3
 - qrcode 7.4.2
 - pillow 10.0.1
+- firebase-admin 6.2.0
+- Firebase Project with Firestore enabled
 
 ## 🚀 Quick Setup
 
-1. **Install dependencies:**
-   ```powershell
-   pip install -r requirements.txt
+### 1. Firebase Setup (Required)
+**⚠️ IMPORTANT: Firebase setup is mandatory before running the application.**
+
+1. **Create Firebase Project:**
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Create a new project
+   - Enable Firestore Database in production mode
+
+2. **Download Service Account Key:**
+   - Go to Project Settings > Service Accounts
+   - Click "Generate new private key"
+   - Save as `firebase-service-account-key.json` in project root
+   - **🔒 Security Notice**: This file contains sensitive credentials and is automatically ignored by git
+
+3. **Configure Firestore Rules (Optional but Recommended):**
+   ```javascript
+   // Firestore Security Rules
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       // Allow read/write access to all documents
+       match /{document=**} {
+         allow read, write: if true;
+       }
+     }
+   }
    ```
+
+4. **For detailed Firebase setup instructions, see [FIREBASE_SETUP.md](FIREBASE_SETUP.md)**
+
+### 2. Install Dependencies
+```powershell
+# Clone or download the project
+git clone <your-repo-url>
+cd event_python
+
+# Install Python dependencies
+pip install -r requirements.txt
+```
+
+### 3. Environment Setup
+1. **Verify Firebase Configuration:**
+   - Ensure `firebase-service-account-key.json` is in the project root
+   - Check that `firebase_config.py` exists and is properly configured
 
 2. **Run the application:**
    ```powershell
@@ -58,6 +105,35 @@ A beautiful and responsive event check-in and feedback web application using Fla
    ```
    http://127.0.0.1:5000
    ```
+
+### 4. First-Time Setup
+1. **Access Admin Panel:**
+   - Navigate to `http://127.0.0.1:5000/admin/login`
+   - Enter password: `event@123`
+   - Create your first event to get started
+
+## 📊 Database Architecture
+
+**🔥 Firebase Firestore** - This application uses Firebase Firestore as the primary database.
+
+### Collections Structure:
+- **events**: Event information with document IDs as unique identifiers
+- **registrations**: User registrations linked to events
+- **feedback**: User feedback and ratings
+
+### Migration from SQLite:
+**Important:** If you have existing SQLite data (`event.db` file):
+- The old `event.db` file is no longer used and can be safely removed
+- Document IDs in Firestore replace integer primary keys from SQLite
+- Existing QR codes with integer IDs will need to be regenerated
+- See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for migration guidance
+
+### Firebase Advantages:
+- **Real-time sync**: Data updates across all devices instantly
+- **Scalability**: Handles growth from 10 to 10,000+ users seamlessly
+- **Reliability**: 99.99% uptime with automatic backups
+- **Security**: Built-in authentication and security rules
+- **Offline Support**: Works offline with automatic sync when reconnected
 
 ## 📱 Detailed How to Use
 
@@ -211,35 +287,81 @@ The app automatically saves:
 - **Scanner statistics** for analytics
 - **Verification history** for tracking
 
-## 🗂 Database Schema
+## 🗂 Database Schema (Firebase Firestore)
 
-- **events**: `id`, `title`, `description`, `date`
-- **registrations**: `id`, `event_id`, `name`, `email`, `checked_in`, `feedback_given`
-- **feedback**: `id`, `registration_id`, `rating`, `comment`
+### Collections:
+- **events**: `{id, title, description, date, created_at}`
+- **registrations**: `{id, event_id, name, email, checked_in, feedback_given, registration_date}`
+- **feedback**: `{id, registration_id, rating, comment, feedback_date}`
+
+### Document Structure:
+```javascript
+// events collection
+{
+  id: "auto-generated-doc-id",
+  title: "Tech Conference 2025",
+  description: "Annual technology conference",
+  date: "2025-07-15",
+  created_at: Timestamp
+}
+
+// registrations collection
+{
+  id: "auto-generated-doc-id", 
+  event_id: "reference-to-event-doc",
+  name: "John Doe",
+  email: "john@example.com",
+  checked_in: false,
+  feedback_given: false,
+  registration_date: Timestamp
+}
+
+// feedback collection
+{
+  id: "auto-generated-doc-id",
+  registration_id: "reference-to-registration-doc", 
+  rating: 5,
+  comment: "Great event!",
+  feedback_date: Timestamp
+}
+```
 
 ## 📁 Complete Project Structure
 
 ```
 event_python/
-├── main.py                     # Main Flask application with all routes
-├── requirements.txt            # Python dependencies
-├── README.md                  # This comprehensive documentation
-├── event.db                   # SQLite database (auto-created on first run)
-├── templates/                 # HTML templates with Tailwind CSS
-│   ├── index.html            # Homepage - events list and navigation
-│   ├── register.html         # Registration form with event selection
-│   ├── qr.html              # QR code display with download options
-│   ├── user_panel.html      # User dashboard for all registrations
-│   ├── verify.html          # Admin check-in verification page
-│   ├── checked_in.html      # Check-in success confirmation
-│   ├── feedback.html        # User feedback form with star rating
-│   ├── thankyou.html        # Thank you page after feedback
-│   ├── admin_login.html     # Admin authentication page
-│   ├── admin.html           # Admin panel - event management
-│   ├── scan.html            # QR scanner interface for admins
-│   └── feedback_view.html   # Admin feedback analytics dashboard
-└── static/                   # Static files (empty - using Tailwind CDN)
+├── main.py                          # Main Flask application with all routes
+├── data_service.py                  # Firebase Firestore service layer
+├── firebase_config.py               # Firebase configuration and initialization
+├── firebase-service-account-key.json # Firebase credentials (ignored by git)
+├── requirements.txt                 # Python dependencies
+├── README.md                       # This comprehensive documentation
+├── FIREBASE_SETUP.md               # Detailed Firebase setup instructions
+├── event.db                        # Legacy SQLite database (can be removed)
+├── .gitignore                      # Git ignore rules (includes Firebase keys)
+├── templates/                      # HTML templates with Tailwind CSS
+│   ├── index.html                 # Homepage - events list and navigation
+│   ├── register.html              # Registration form with event selection
+│   ├── qr.html                    # QR code display with download options
+│   ├── user_panel.html            # User dashboard for all registrations
+│   ├── verify.html                # Admin check-in verification page
+│   ├── checked_in.html            # Check-in success confirmation
+│   ├── feedback.html              # User feedback form with star rating
+│   ├── thankyou.html              # Thank you page after feedback
+│   ├── admin_login.html           # Admin authentication page
+│   ├── admin.html                 # Admin panel - event management
+│   ├── scan.html                  # QR scanner interface for admins
+│   └── feedback_view.html         # Admin feedback analytics dashboard
+├── static/                        # Static files (using Tailwind CDN)
+└── __pycache__/                   # Python cache files (ignored by git)
 ```
+
+### Key Files Explained:
+- **`main.py`**: Core Flask application with routing and business logic
+- **`data_service.py`**: Abstraction layer for Firebase Firestore operations
+- **`firebase_config.py`**: Firebase SDK initialization and configuration
+- **`firebase-service-account-key.json`**: 🔒 Sensitive Firebase credentials (never commit to git)
+- **`event.db`**: Legacy SQLite database file (can be safely removed)
 
 ## 🎯 Enhanced API Routes
 
@@ -261,23 +383,35 @@ event_python/
 ## 🌟 Key Technologies
 
 - **Backend**: Flask (Python web framework)
-- **Database**: SQLite (lightweight SQL database)
+- **Database**: Firebase Firestore (NoSQL cloud database)
+- **Authentication**: Firebase Admin SDK for secure database access
 - **Frontend**: HTML5, Tailwind CSS, Vanilla JavaScript
 - **QR Generation**: python-qrcode + Pillow
 - **QR Scanning**: html5-qrcode library
 - **Storage**: Browser localStorage for drafts and analytics
+- **Cloud Services**: Google Firebase platform for scalability and reliability
 
 ## 🔧 Configuration & Customization
 
 ### **Security Configuration**
 - **Admin Password**: Change `ADMIN_PASSWORD = 'event@123'` in `main.py`
-- **Secret Key**: Update `app.secret_key` for production
+- **Secret Key**: Update `app.secret_key` for production (use environment variables)
+- **Firebase Security**: Configure Firestore security rules for production
 - **Session Security**: Configure session timeout if needed
 
 ### **Database Configuration**
-- **SQLite**: Default database file `event.db` (auto-created)
-- **PostgreSQL**: For production, update connection string
-- **Backup**: Regular backup of `event.db` recommended
+- **Firebase Firestore**: Default cloud database with automatic scaling
+- **Backup**: Firebase automatically handles backups and replication
+- **Environment**: Use different Firebase projects for dev/staging/production
+- **Security Rules**: Configure Firestore rules for data access control
+
+### **Environment Variables**
+```bash
+# Recommended for production
+FLASK_SECRET_KEY=your-production-secret-key
+ADMIN_PASSWORD=your-secure-admin-password
+FIREBASE_PROJECT_ID=your-firebase-project-id
+```
 
 ### **UI Customization**
 - **Colors**: Modify Tailwind classes in templates
@@ -342,37 +476,62 @@ Process:
 ### **Preparation Checklist**
 1. **Security Updates:**
    ```python
-   # In main.py
+   # In main.py - use environment variables
+   import os
    app.config['DEBUG'] = False
-   app.secret_key = 'your-complex-production-secret-key'
-   ADMIN_PASSWORD = 'your-secure-admin-password'
+   app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'fallback-key')
+   ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'event@123')
    ```
 
-2. **Database Migration:**
-   - Backup development `event.db`
-   - Consider PostgreSQL for production
-   - Set up database backups
+2. **Firebase Configuration:**
+   - Create separate Firebase projects for production
+   - Generate new service account key for production
+   - Configure Firestore security rules for production
+   - Set up Firebase monitoring and alerts
 
-3. **Environment Setup:**
+3. **Environment Variables:**
    ```bash
-   # Install production dependencies
-   pip install gunicorn
-   pip install python-dotenv
+   export FLASK_SECRET_KEY="your-complex-production-secret-key"
+   export ADMIN_PASSWORD="your-secure-admin-password"
+   export GOOGLE_APPLICATION_CREDENTIALS="path/to/firebase-service-account-key.json"
+   ```
+
+4. **Dependencies:**
+   ```bash
+   pip install gunicorn python-dotenv
    ```
 
 ### **Deployment Options**
 
-#### **Option 1: Heroku**
+#### **Option 1: Google Cloud Run (Recommended for Firebase)**
+```bash
+# Create Dockerfile
+FROM python:3.9-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+EXPOSE 8080
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 main:app
+
+# Deploy to Cloud Run
+gcloud run deploy event-app --source . --platform managed --region us-central1
+```
+
+#### **Option 2: Heroku**
 ```bash
 # Create Procfile
 echo "web: gunicorn main:app" > Procfile
+
+# Add Firebase credentials as config vars
+heroku config:set GOOGLE_APPLICATION_CREDENTIALS="firebase-service-account-key.json"
 
 # Deploy to Heroku
 heroku create your-app-name
 git push heroku main
 ```
 
-#### **Option 2: VPS/Cloud Server**
+#### **Option 3: Traditional VPS**
 ```bash
 # Install dependencies
 pip install gunicorn nginx
@@ -384,22 +543,38 @@ gunicorn -w 4 -b 0.0.0.0:8000 main:app
 sudo nano /etc/nginx/sites-available/event-app
 ```
 
-#### **Option 3: Docker**
-```dockerfile
-FROM python:3.9-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "main:app"]
-```
+### **Firebase Production Setup**
+1. **Create Production Firebase Project:**
+   - Separate project from development
+   - Configure production Firestore rules
+   - Set up monitoring and alerts
+
+2. **Security Rules Example:**
+   ```javascript
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /events/{eventId} {
+         allow read: if true;
+         allow write: if request.auth != null;
+       }
+       match /registrations/{regId} {
+         allow read, write: if request.auth != null;
+       }
+       match /feedback/{feedbackId} {
+         allow read, write: if request.auth != null;
+       }
+     }
+   }
+   ```
 
 ### **Post-Deployment**
 - Test all functionality thoroughly
-- Set up monitoring and logging
-- Configure SSL certificates
-- Set up regular database backups
-- Monitor performance and scaling needs
+- Monitor Firebase usage and billing
+- Set up logging and error tracking
+- Configure SSL certificates (handled automatically on most platforms)
+- Set up monitoring for Firebase quotas and performance
+- Monitor costs and set up budget alerts
 
 ## 🎨 Advanced Customization Examples
 

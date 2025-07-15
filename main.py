@@ -1,50 +1,16 @@
 import os
-import sqlite3
 import io
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash, session
 from datetime import datetime
 import qrcode
 from PIL import Image
+from data_service import event_service
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_change_in_production'
-DATABASE = 'event.db'
 ADMIN_PASSWORD = 'event@123'
 
-# --- Database Initialization ---
-def init_db():
-    conn = sqlite3.connect(DATABASE)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS events (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        description TEXT,
-        date TEXT NOT NULL
-    )''')
-    c.execute('''CREATE TABLE IF NOT EXISTS registrations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        event_id INTEGER,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL,
-        checked_in INTEGER DEFAULT 0,
-        feedback_given INTEGER DEFAULT 0,
-        FOREIGN KEY(event_id) REFERENCES events(id)
-    )''')
-    c.execute('''CREATE TABLE IF NOT EXISTS feedback (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        registration_id INTEGER,
-        rating INTEGER,
-        comment TEXT,
-        FOREIGN KEY(registration_id) REFERENCES registrations(id)
-    )''')
-    conn.commit()
-    conn.close()
-
 # --- Helper Functions ---
-def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
 
 def generate_qr(data):
     qr = qrcode.QRCode(box_size=10, border=2)
@@ -74,133 +40,81 @@ def admin_required(f):
 # --- Routes ---
 @app.route('/')
 def index():
-    conn = get_db_connection()
-    events = conn.execute('SELECT * FROM events ORDER BY date DESC').fetchall()
-    conn.close()
+    events = event_service.get_all_events()
     return render_template('index.html', events=events)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    conn = get_db_connection()
-    events = conn.execute('SELECT * FROM events ORDER BY date DESC').fetchall()
+    events = event_service.get_all_events()
     if request.method == 'POST':
         name = request.form['name']
         email = request.form['email']
         event_id = request.form['event_id']
-        c = conn.cursor()
-        c.execute('INSERT INTO registrations (event_id, name, email) VALUES (?, ?, ?)',
-                  (event_id, name, email))
-        reg_id = c.lastrowid
-        conn.commit()
-        conn.close()
+        reg_id = event_service.create_registration(event_id, name, email)
         qr_url = url_for('verify', reg_id=reg_id, _external=True)
         return render_template('qr.html', qr_url=qr_url, reg_id=reg_id)
-    conn.close()
     return render_template('register.html', events=events)
 
-@app.route('/qr/<int:reg_id>')
+@app.route('/qr/<reg_id>')
 def qr_image(reg_id):
     qr_url = url_for('verify', reg_id=reg_id, _external=True)
     buf = generate_qr(qr_url)
     return send_file(buf, mimetype='image/png')
 
-@app.route('/verify/<int:reg_id>', methods=['GET', 'POST'])
+@app.route('/verify/<reg_id>', methods=['GET', 'POST'])
 @admin_required
 def verify(reg_id):
-    conn = get_db_connection()
-    reg = conn.execute('SELECT * FROM registrations WHERE id = ?', (reg_id,)).fetchone()
+    reg = event_service.get_registration_by_id(reg_id)
     if not reg:
-        conn.close()
         return 'Registration not found', 404
     if request.method == 'POST':
-        conn.execute('UPDATE registrations SET checked_in = 1 WHERE id = ?', (reg_id,))
-        conn.commit()
-        conn.close()
+        event_service.update_checkin_status(reg_id, True)
         feedback_link = url_for('feedback', reg_id=reg_id, _external=True)
         return render_template('checked_in.html', feedback_link=feedback_link)
-    conn.close()
     return render_template('verify.html', reg=reg)
 
-@app.route('/feedback/<int:reg_id>', methods=['GET', 'POST'])
+@app.route('/feedback/<reg_id>', methods=['GET', 'POST'])
 def feedback(reg_id):
-    conn = get_db_connection()
-    reg = conn.execute('SELECT * FROM registrations WHERE id = ?', (reg_id,)).fetchone()
-    if not reg or not reg['checked_in']:
-        conn.close()
+    reg = event_service.get_registration_by_id(reg_id)
+    if not reg or not reg.get('checked_in', False):
         return 'Not checked in or registration not found', 403
-    if reg['feedback_given']:
-        conn.close()
+    if reg.get('feedback_given', False):
         return render_template('thankyou.html')  # Show thank you if already submitted
     if request.method == 'POST':
         rating = int(request.form['rating'])
         comment = request.form['comment']
-        conn.execute('INSERT INTO feedback (registration_id, rating, comment) VALUES (?, ?, ?)',
-                     (reg_id, rating, comment))
-        conn.execute('UPDATE registrations SET feedback_given = 1 WHERE id = ?', (reg_id,))
-        conn.commit()
-        conn.close()
+        event_service.create_feedback(reg_id, rating, comment)
+        event_service.update_feedback_status(reg_id, True)
         return render_template('thankyou.html')
-    conn.close()
     return render_template('feedback.html', reg=reg)
 
 @app.route('/admin', methods=['GET', 'POST'])
 @admin_required
 def admin():
-    conn = get_db_connection()
-    events = conn.execute('SELECT * FROM events ORDER BY date DESC').fetchall()
+    events = event_service.get_all_events()
     participants = []
     selected_event = None
     if request.method == 'POST':
         title = request.form['title']
         description = request.form['description']
         date = request.form['date']
-        conn.execute('INSERT INTO events (title, description, date) VALUES (?, ?, ?)',
-                     (title, description, date))
-        conn.commit()
+        event_service.create_event(title, description, date)
     event_id = request.args.get('event_id')
     if event_id:
-        selected_event = conn.execute('SELECT * FROM events WHERE id = ?', (event_id,)).fetchone()
-        participants = conn.execute('SELECT * FROM registrations WHERE event_id = ?', (event_id,)).fetchall()
-    conn.close()
+        selected_event = event_service.get_event_by_id(event_id)
+        participants = event_service.get_registrations_by_event(event_id)
     return render_template('admin.html', events=events, participants=participants, selected_event=selected_event)
 
-@app.route('/admin/feedback/<int:event_id>')
+@app.route('/admin/feedback/<event_id>')
 @admin_required
 def view_feedback(event_id):
-    conn = get_db_connection()
-    event = conn.execute('SELECT * FROM events WHERE id = ?', (event_id,)).fetchone()
+    event = event_service.get_event_by_id(event_id)
     if not event:
-        conn.close()
         return 'Event not found', 404
     
-    feedback_data = conn.execute('''
-        SELECT f.rating, f.comment, f.id as feedback_id, r.name, r.email, r.id as reg_id
-        FROM feedback f
-        JOIN registrations r ON f.registration_id = r.id
-        WHERE r.event_id = ?
-        ORDER BY f.id DESC
-    ''', (event_id,)).fetchall()
-    
-    # Get statistics
-    stats = conn.execute('''
-        SELECT 
-            COUNT(*) as total_registrations,
-            SUM(CASE WHEN checked_in = 1 THEN 1 ELSE 0 END) as checked_in_count,
-            SUM(CASE WHEN feedback_given = 1 THEN 1 ELSE 0 END) as feedback_count
-        FROM registrations WHERE event_id = ?
-    ''', (event_id,)).fetchone()
-    
-    # Get rating distribution
-    rating_stats = conn.execute('''
-        SELECT rating, COUNT(*) as count
-        FROM feedback f
-        JOIN registrations r ON f.registration_id = r.id
-        WHERE r.event_id = ?
-        GROUP BY rating
-        ORDER BY rating
-    ''', (event_id,)).fetchall()
-    
-    conn.close()
+    feedback_data = event_service.get_feedback_by_event(event_id)
+    stats = event_service.get_event_statistics(event_id)
+    rating_stats = event_service.get_rating_statistics(event_id)
     
     return render_template('feedback_view.html', 
                          event=event, 
@@ -223,15 +137,7 @@ def manual_checkin():
 def user_panel():
     if request.method == 'POST':
         email = request.form['email']
-        conn = get_db_connection()
-        registrations = conn.execute('''
-            SELECT r.*, e.title, e.description, e.date 
-            FROM registrations r 
-            JOIN events e ON r.event_id = e.id 
-            WHERE r.email = ? 
-            ORDER BY e.date DESC
-        ''', (email,)).fetchall()
-        conn.close()
+        registrations = event_service.get_registrations_by_email(email)
         return render_template('user_panel.html', registrations=registrations, user_email=email)
     return render_template('user_panel.html', registrations=None, user_email=None)
 
@@ -254,5 +160,4 @@ def admin_logout():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    init_db()
     app.run(debug=True)

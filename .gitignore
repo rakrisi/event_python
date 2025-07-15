@@ -140,3 +140,9 @@ event.db
 # Temporary files
 *.tmp
 *.bak
+
+# Firebase credentials and secrets
+firebase-service-account-key.json
+*service-account*.json
+*.env
+.env.local
